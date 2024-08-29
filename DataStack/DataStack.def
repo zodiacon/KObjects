@@ -1,0 +1,10 @@
+LIBRARY
+EXPORTS
+	CreateDataStack
+	OpenDataStack
+	NtCreateDataStack
+	NtOpenDataStack
+	;PushToDataStack
+	;PopFromDataStack
+	;ClearDataStack
+
