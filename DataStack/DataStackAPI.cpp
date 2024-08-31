@@ -67,7 +67,7 @@ HANDLE OpenDataStack(_In_ ACCESS_MASK desiredAccess, _In_ BOOL inheritHandle, _I
 	OBJECT_ATTRIBUTES attr;
 	InitializeObjectAttributes(&attr,
 		&uname,
-		OBJ_CASE_INSENSITIVE | (inheritHandle ? OBJ_INHERIT : 0) | OBJ_OPENIF,
+		OBJ_CASE_INSENSITIVE | (inheritHandle ? OBJ_INHERIT : 0),
 		GetUserDirectoryRoot(),
 		nullptr);
 	HANDLE hDataStack;

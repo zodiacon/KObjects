@@ -4,7 +4,7 @@ HANDLE g_hDevice = INVALID_HANDLE_VALUE;
 
 bool OpenDevice() {
 	UNICODE_STRING devName;
-	RtlInitUnicodeString(&devName, L"\\Device\\KObjects");
+	RtlInitUnicodeString(&devName, L"\\Device\\KDataStack");
 	OBJECT_ATTRIBUTES devAttr;
 	InitializeObjectAttributes(&devAttr, &devName, 0, nullptr, nullptr);
 	IO_STATUS_BLOCK ioStatus;
@@ -21,7 +21,7 @@ void CloseDevice() {
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID lpReserved) {
 	switch (reason) {
 		case DLL_PROCESS_ATTACH:
-			::DisableThreadLibraryCalls(hModule);
+			DisableThreadLibraryCalls(hModule);
 			return OpenDevice();
 
 		case DLL_THREAD_ATTACH:

@@ -26,17 +26,16 @@ extern "C" NTSTATUS
 DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath) {
 	UNREFERENCED_PARAMETER(RegistryPath);
 
-	UNICODE_STRING devName = RTL_CONSTANT_STRING(L"KDataStack");
-	PDEVICE_OBJECT devObj;
-	auto status = IoCreateDevice(DriverObject, 0, &devName, FILE_DEVICE_UNKNOWN, 0, FALSE, &devObj);
-	if (!NT_SUCCESS(status))
-		return status;
-
-	status = DsCreateDataStackObjectType();
+	auto status = DsCreateDataStackObjectType();
 	if (!NT_SUCCESS(status)) {
-		IoDeleteDevice(devObj);
 		return status;
 	}
+
+	UNICODE_STRING devName = RTL_CONSTANT_STRING(L"\\Device\\KDataStack");
+	PDEVICE_OBJECT devObj;
+	status = IoCreateDevice(DriverObject, 0, &devName, FILE_DEVICE_UNKNOWN, 0, FALSE, &devObj);
+	if (!NT_SUCCESS(status))
+		return status;
 
 	DriverObject->DriverUnload = OnUnload;
 	DriverObject->MajorFunction[IRP_MJ_CREATE] = DriverObject->MajorFunction[IRP_MJ_CLOSE] =

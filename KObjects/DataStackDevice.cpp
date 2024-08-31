@@ -13,7 +13,7 @@ NTSTATUS OnDeviceControl(PDEVICE_OBJECT, PIRP Irp) {
 		{
 			auto data = (DataStackCreate*)Irp->AssociatedIrp.SystemBuffer;
 			if (dic.InputBufferLength < sizeof(*data)) {
-				Irp->IoStatus.Status = STATUS_BUFFER_TOO_SMALL;
+				status = STATUS_BUFFER_TOO_SMALL;
 				break;
 			}
 			HANDLE hDataStack;
@@ -29,7 +29,7 @@ NTSTATUS OnDeviceControl(PDEVICE_OBJECT, PIRP Irp) {
 		{
 			auto data = (DataStackOpen*)Irp->AssociatedIrp.SystemBuffer;
 			if (dic.InputBufferLength < sizeof(*data)) {
-				Irp->IoStatus.Status = STATUS_BUFFER_TOO_SMALL;
+				status = STATUS_BUFFER_TOO_SMALL;
 				break;
 			}
 			HANDLE hDataStack;
@@ -42,7 +42,7 @@ NTSTATUS OnDeviceControl(PDEVICE_OBJECT, PIRP Irp) {
 		}
 	}
 
-	Irp->IoStatus.Status = STATUS_SUCCESS;
+	Irp->IoStatus.Status = status;
 	Irp->IoStatus.Information = len;
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
 	return status;

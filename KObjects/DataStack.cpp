@@ -147,14 +147,14 @@ extern "C" {
 		_Out_opt_ PVOID* NewObject,
 		_Out_opt_ PHANDLE Handle);
 
-	NTSTATUS ObOpenObjectByName(
-		_In_ POBJECT_ATTRIBUTES ObjectAttributes,
-		_In_ POBJECT_TYPE ObjectType,
-		_In_ KPROCESSOR_MODE AccessMode,
-		_Inout_opt_ PACCESS_STATE AccessState,
-		_In_opt_ ACCESS_MASK DesiredAccess,
-		_Inout_opt_ PVOID ParseContext,
-		_Out_ PHANDLE Handle);
+NTSTATUS ObOpenObjectByName(
+	_In_ POBJECT_ATTRIBUTES ObjectAttributes,
+	_In_ POBJECT_TYPE ObjectType,
+	_In_ KPROCESSOR_MODE AccessMode,
+	_Inout_opt_ PACCESS_STATE AccessState,
+	_In_opt_ ACCESS_MASK DesiredAccess,
+	_Inout_opt_ PVOID ParseContext,
+	_Out_ PHANDLE Handle);
 }
 
 NTSTATUS DsCreateDataStackObjectType() {
@@ -177,6 +177,9 @@ NTSTATUS DsCreateDataStackObjectType() {
 		KdPrint(("DataStack Object type already exists\n"));
 		status = STATUS_SUCCESS;
 	}
+	else if (status == STATUS_SUCCESS) {
+		KdPrint(("Created DataStack Type Object (0x%p)\n", g_DataStackType));
+	}
 	return status;
 }
 
@@ -192,37 +195,30 @@ void DsInitializeDataStack(DataStack* DataStack, ULONG MaxItemSize, ULONG MaxIte
 
 NTSTATUS NTAPI NtCreateDataStack(_Out_ PHANDLE DataStackHandle, _In_opt_ POBJECT_ATTRIBUTES DataStackAttributes, _In_ ULONG MaxItemSize, _In_ ULONG MaxItemCount, ULONG_PTR MaxSize) {
 	auto mode = ExGetPreviousMode();
-	if (mode != KernelMode) {
-		__try {
-			ProbeForWrite(DataStackHandle, sizeof(HANDLE), sizeof(HANDLE));
-		}
-		__except (EXCEPTION_EXECUTE_HANDLER) {
-			return GetExceptionCode();
-		}
-	}
 
 	extern POBJECT_TYPE g_DataStackType;
+	//
+	// sanity check
+	//
+	if (g_DataStackType == nullptr)
+		return STATUS_NOT_FOUND;
 
 	DataStack* ds;
-	auto status = ObCreateObject(mode, g_DataStackType, DataStackAttributes, mode, nullptr, sizeof(DataStack), 0, 0, (PVOID*)&ds);
-	if (!NT_SUCCESS(status))
+	auto status = ObCreateObject(mode, g_DataStackType, DataStackAttributes, mode, 
+		nullptr, sizeof(DataStack), 0, 0, (PVOID*)&ds);
+	if (!NT_SUCCESS(status)) {
+		KdPrint(("Error in ObCreateObject (0x%X)\n", status));
 		return status;
+	}
 
 	DsInitializeDataStack(ds, MaxItemSize, MaxItemCount, MaxSize);
 	HANDLE hDataStack;
 	status = ObInsertObject(ds, nullptr, DATA_STACK_ALL_ACCESS, 0, nullptr, &hDataStack);
 	if (NT_SUCCESS(status)) {
-		if (mode != KernelMode) {
-			__try {
-				*DataStackHandle = hDataStack;
-			}
-			__except (EXCEPTION_EXECUTE_HANDLER) {
-				status = GetExceptionCode();
-			}
-		}
-		else {
-			*DataStackHandle = hDataStack;
-		}
+		*DataStackHandle = hDataStack;
+	}
+	else {
+		KdPrint(("Error in ObInsertObject (0x%X)\n", status));
 	}
 	return status;
 }

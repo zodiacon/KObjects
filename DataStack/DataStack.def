@@ -4,7 +4,4 @@ EXPORTS
 	OpenDataStack
 	NtCreateDataStack
 	NtOpenDataStack
-	;PushToDataStack
-	;PopFromDataStack
-	;ClearDataStack
 
