@@ -36,6 +36,11 @@ HANDLE GetUserDirectoryRoot() {
 }
 
 HANDLE CreateDataStack(_In_opt_ SECURITY_ATTRIBUTES* sa, _In_ ULONG maxItemSize, _In_ ULONG maxItemCount, _In_ ULONG_PTR maxSize, _In_opt_ PCWSTR name) {
+	if (BOOL wow; IsWow64Process(GetCurrentProcess(), &wow) && wow) {
+		SetLastError(ERROR_NOT_SUPPORTED);
+		return nullptr;
+	}
+
 	UNICODE_STRING uname{};
 	if (name && *name) {
 		RtlInitUnicodeString(&uname, name);
@@ -57,6 +62,11 @@ HANDLE CreateDataStack(_In_opt_ SECURITY_ATTRIBUTES* sa, _In_ ULONG maxItemSize,
 }
 
 HANDLE OpenDataStack(_In_ ACCESS_MASK desiredAccess, _In_ BOOL inheritHandle, _In_ PCWSTR name) {
+	if (BOOL wow; IsWow64Process(GetCurrentProcess(), &wow) && wow) {
+		SetLastError(ERROR_NOT_SUPPORTED);
+		return nullptr;
+	}
+
 	if (name == nullptr || *name == 0) {
 		SetLastError(ERROR_INVALID_NAME);
 		return nullptr;
