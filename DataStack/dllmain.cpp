@@ -21,6 +21,9 @@ void CloseDevice() {
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID lpReserved) {
 	switch (reason) {
 		case DLL_PROCESS_ATTACH:
+			if (BOOL wow; IsWow64Process(GetCurrentProcess(), &wow) && wow)
+				return FALSE;
+
 			DisableThreadLibraryCalls(hModule);
 			return OpenDevice();
 

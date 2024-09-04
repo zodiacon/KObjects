@@ -12,4 +12,8 @@ extern "C" {
 		_In_ ACCESS_MASK desiredAccess,
 		_In_ BOOL inheritHandle,
 		_In_ PCWSTR name);
+
+	BOOL WINAPI PushDataStack(_In_ HANDLE hDataStack, _In_ const PVOID buffer, _In_ DWORD size);
+	BOOL WINAPI PopDataStack(_In_ HANDLE hDataStack, _Out_ PVOID buffer, _Inout_ DWORD* size);
+	BOOL WINAPI ClearDataStack(_In_ HANDLE hDataStack);
 }

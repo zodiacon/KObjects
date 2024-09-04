@@ -45,6 +45,40 @@ NTSTATUS OnDeviceControl(PDEVICE_OBJECT, PIRP Irp) {
 				}
 				break;
 			}
+
+			case IOCTL_DATASTACK_CLEAR:
+			{
+				auto data = (DataStackClear*)Irp->AssociatedIrp.SystemBuffer;
+				if (dic.InputBufferLength < sizeof(*data)) {
+					status = STATUS_BUFFER_TOO_SMALL;
+					break;
+				}
+				status = NtClearDataStack(data->DataStackHandle);
+				break;
+			}
+
+			case IOCTL_DATASTACK_PUSH:
+			{
+				auto data = (DataStackPush*)Irp->AssociatedIrp.SystemBuffer;
+				if (dic.InputBufferLength < sizeof(*data)) {
+					status = STATUS_BUFFER_TOO_SMALL;
+					break;
+				}
+				status = NtPushDataStack(data->DataStackHandle, data->Buffer, data->Size);
+				break;
+			}
+
+			case IOCTL_DATASTACK_POP:
+			{
+				auto data = (DataStackPop*)Irp->AssociatedIrp.SystemBuffer;
+				if (dic.InputBufferLength < sizeof(*data)) {
+					status = STATUS_BUFFER_TOO_SMALL;
+					break;
+				}
+				status = NtPopDataStack(data->DataStackHandle, data->Buffer, data->Size);
+				break;
+			}
+
 		}
 	}
 

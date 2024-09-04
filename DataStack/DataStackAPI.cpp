@@ -35,7 +35,7 @@ HANDLE GetUserDirectoryRoot() {
 	return hDir;
 }
 
-HANDLE CreateDataStack(_In_opt_ SECURITY_ATTRIBUTES* sa, _In_ ULONG maxItemSize, _In_ ULONG maxItemCount, _In_ ULONG_PTR maxSize, _In_opt_ PCWSTR name) {
+HANDLE WINAPI CreateDataStack(_In_opt_ SECURITY_ATTRIBUTES* sa, _In_ ULONG maxItemSize, _In_ ULONG maxItemCount, _In_ ULONG_PTR maxSize, _In_opt_ PCWSTR name) {
 	if (BOOL wow; IsWow64Process(GetCurrentProcess(), &wow) && wow) {
 		SetLastError(ERROR_NOT_SUPPORTED);
 		return nullptr;
@@ -46,22 +46,31 @@ HANDLE CreateDataStack(_In_opt_ SECURITY_ATTRIBUTES* sa, _In_ ULONG maxItemSize,
 		RtlInitUnicodeString(&uname, name);
 	}
 	OBJECT_ATTRIBUTES attr;
-	InitializeObjectAttributes(&attr, 
-		uname.Length ? &uname : nullptr, 
-		OBJ_CASE_INSENSITIVE | (sa && sa->bInheritHandle ? OBJ_INHERIT : 0) | (uname.Length ? OBJ_OPENIF : 0),
-		uname.Length ? GetUserDirectoryRoot() : nullptr, 
+	InitializeObjectAttributes(&attr,
+		uname.Length ? &uname : nullptr,
+		(sa && sa->bInheritHandle ? OBJ_INHERIT : 0) | (uname.Length ? (OBJ_OPENIF | OBJ_CASE_INSENSITIVE) : 0),
+		uname.Length ? GetUserDirectoryRoot() : nullptr,
 		sa ? sa->lpSecurityDescriptor : nullptr);
-	
+
 	HANDLE hDataStack;
 	auto status = NtCreateDataStack(&hDataStack, &attr, maxItemSize, maxItemCount, maxSize);
-	if (NT_SUCCESS(status))
+	if (NT_SUCCESS(status)) {
+		const NTSTATUS STATUS_OBJECT_NAME_EXISTS = 0x40000000;
+
+		if (status == STATUS_OBJECT_NAME_EXISTS) {
+			SetLastError(ERROR_ALREADY_EXISTS);
+		}
+		else {
+			SetLastError(0);
+		}
 		return hDataStack;
+	}
 
 	SetLastError(RtlNtStatusToDosError(status));
 	return nullptr;
 }
 
-HANDLE OpenDataStack(_In_ ACCESS_MASK desiredAccess, _In_ BOOL inheritHandle, _In_ PCWSTR name) {
+HANDLE WINAPI OpenDataStack(_In_ ACCESS_MASK desiredAccess, _In_ BOOL inheritHandle, _In_ PCWSTR name) {
 	if (BOOL wow; IsWow64Process(GetCurrentProcess(), &wow) && wow) {
 		SetLastError(ERROR_NOT_SUPPORTED);
 		return nullptr;
@@ -88,3 +97,31 @@ HANDLE OpenDataStack(_In_ ACCESS_MASK desiredAccess, _In_ BOOL inheritHandle, _I
 	SetLastError(RtlNtStatusToDosError(status));
 	return nullptr;
 }
+
+_Use_decl_annotations_
+BOOL WINAPI PushDataStack(HANDLE hDataStack, const PVOID buffer, DWORD size) {
+	auto status = NtPushDataStack(hDataStack, buffer, size);
+	if (!NT_SUCCESS(status))
+		SetLastError(RtlNtStatusToDosError(status));
+
+	return NT_SUCCESS(status);
+}
+
+_Use_decl_annotations_
+BOOL WINAPI PopDataStack(HANDLE hDataStack, PVOID buffer, DWORD* size) {
+	auto status = NtPopDataStack(hDataStack, buffer, size);
+	if (!NT_SUCCESS(status))
+		SetLastError(RtlNtStatusToDosError(status));
+
+	return NT_SUCCESS(status);
+}
+
+_Use_decl_annotations_
+BOOL WINAPI ClearDataStack(HANDLE hDataStack) {
+	auto status = NtClearDataStack(hDataStack);
+	if (!NT_SUCCESS(status))
+		SetLastError(RtlNtStatusToDosError(status));
+
+	return NT_SUCCESS(status);
+}
+

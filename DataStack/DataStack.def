@@ -2,6 +2,12 @@ LIBRARY
 EXPORTS
 	CreateDataStack
 	OpenDataStack
+	PushDataStack
+	PopDataStack
+	ClearDataStack
+
 	NtCreateDataStack
 	NtOpenDataStack
-
+	NtPushDataStack
+	NtPopDataStack
+	NtClearDataStack

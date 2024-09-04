@@ -27,3 +27,31 @@ NTSTATUS NTAPI NtOpenDataStack(_Out_ PHANDLE DataStackHandle, _In_ ACCESS_MASK D
 	return NtDeviceIoControlFile(g_hDevice, nullptr, nullptr, nullptr, &ioStatus,
 		IOCTL_DATASTACK_OPEN, &data, sizeof(data), DataStackHandle, sizeof(HANDLE));
 }
+
+NTSTATUS NTAPI NtPushDataStack(_In_ HANDLE DataStackHandle, _In_ const PVOID Item, _In_ ULONG ItemSize) {
+	DataStackPush data;
+	data.DataStackHandle = DataStackHandle;
+	data.Buffer = Item;
+	data.Size = ItemSize;
+
+	IO_STATUS_BLOCK ioStatus;
+	return NtDeviceIoControlFile(g_hDevice, nullptr, nullptr, nullptr, &ioStatus,
+		IOCTL_DATASTACK_PUSH, &data, sizeof(data), nullptr, 0);
+}
+
+NTSTATUS NTAPI NtPopDataStack(_In_ HANDLE DataStackHandle, _In_ PVOID Buffer, _Inout_ PULONG ItemSize) {
+	DataStackPop data;
+	data.DataStackHandle = DataStackHandle;
+	data.Buffer = Buffer;
+	data.Size = ItemSize;
+
+	IO_STATUS_BLOCK ioStatus;
+	return NtDeviceIoControlFile(g_hDevice, nullptr, nullptr, nullptr, &ioStatus,
+		IOCTL_DATASTACK_POP, &data, sizeof(data), nullptr, 0);
+}
+
+NTSTATUS NTAPI NtClearDataStack(_In_ HANDLE DataStackHandle) {
+	IO_STATUS_BLOCK ioStatus;
+	return NtDeviceIoControlFile(g_hDevice, nullptr, nullptr, nullptr, &ioStatus,
+		IOCTL_DATASTACK_CLEAR, &DataStackHandle, sizeof(HANDLE), nullptr, 0);
+}

@@ -32,7 +32,7 @@ extern "C" {
 		_Out_opt_ PULONG ReturnLength);
 	NTSTATUS NTAPI NtPushDataStack(
 		_In_ HANDLE DataStackHandle,
-		_In_ PVOID Item,
+		_In_ const PVOID Item,
 		_In_ ULONG ItemSize);
 	NTSTATUS NTAPI NtPopDataStack(
 		_In_ HANDLE DataStackHandle,

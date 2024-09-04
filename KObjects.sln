@@ -8,6 +8,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DSTest", "DSTest\DSTest.vcxproj", "{203E3D8A-2206-4C78-AF4B-9CFAFDEDE7E6}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DataStack", "DataStack\DataStack.vcxproj", "{AD3A2356-58C4-4737-A121-4E9DC3A5E583}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3F5B4B8B-0AB2-4A8D-B5C2-76DFC4D9370B} = {3F5B4B8B-0AB2-4A8D-B5C2-76DFC4D9370B}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

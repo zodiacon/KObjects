@@ -2,7 +2,6 @@
 #include "DataStack.h"
 #include "DataStackNativeAPI.h"
 
-
 POBJECT_TYPE g_DataStackType;
 
 typedef struct _OBJECT_DUMP_CONTROL {
@@ -215,7 +214,17 @@ NTSTATUS NTAPI NtCreateDataStack(_Out_ PHANDLE DataStackHandle, _In_opt_ POBJECT
 	HANDLE hDataStack;
 	status = ObInsertObject(ds, nullptr, DATA_STACK_ALL_ACCESS, 0, nullptr, &hDataStack);
 	if (NT_SUCCESS(status)) {
-		*DataStackHandle = hDataStack;
+		if (mode != KernelMode) {
+			__try {
+				*DataStackHandle = hDataStack;
+			}
+			__except (EXCEPTION_EXECUTE_HANDLER) {
+
+			}
+		}
+		else {
+			*DataStackHandle = hDataStack;
+		}
 	}
 	else {
 		KdPrint(("Error in ObInsertObject (0x%X)\n", status));
@@ -226,5 +235,71 @@ NTSTATUS NTAPI NtCreateDataStack(_Out_ PHANDLE DataStackHandle, _In_opt_ POBJECT
 NTSTATUS NTAPI NtOpenDataStack(_Out_ PHANDLE DataStackHandle, _In_ ACCESS_MASK DesiredAccess, _In_ POBJECT_ATTRIBUTES DataStackAttributes) {
 	return ObOpenObjectByName(DataStackAttributes, g_DataStackType, ExGetPreviousMode(),
 		nullptr, DesiredAccess, nullptr, DataStackHandle);
+}
+
+_Use_decl_annotations_
+NTSTATUS NTAPI NtPushDataStack(HANDLE DataStackHandle, const PVOID Item, ULONG ItemSize) {
+	if (ItemSize == 0)
+		return STATUS_INVALID_PARAMETER_3;
+
+	if (!ARGUMENT_PRESENT(Item))
+		return STATUS_INVALID_PARAMETER_2;
+
+	DataStack* ds;
+	auto status = ObReferenceObjectByHandleWithTag(DataStackHandle, DATA_STACK_PUSH, g_DataStackType, 
+		ExGetPreviousMode(), DataStackTag, (PVOID*)&ds, nullptr);
+	if (!NT_SUCCESS(status))
+		return status;
+
+	status = DsPushDataStack(ds, Item, ItemSize);
+	ObDereferenceObjectWithTag(ds, DataStackTag);
+
+	return status;
+}
+
+_Use_decl_annotations_
+NTSTATUS NTAPI NtPopDataStack(HANDLE DataStackHandle, PVOID Buffer, PULONG BufferSize) {
+	if (!ARGUMENT_PRESENT(BufferSize))
+		return STATUS_INVALID_PARAMETER_3;
+
+	ULONG size;
+	if (ExGetPreviousMode() != KernelMode) {
+		__try {
+			ProbeForRead(BufferSize, sizeof(ULONG), 1);
+			size = *BufferSize;
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER) {
+			return GetExceptionCode();
+		}
+	}
+	else {
+		size = *BufferSize;
+	}
+
+	if (!ARGUMENT_PRESENT(Buffer) && size != 0)
+		return STATUS_INVALID_PARAMETER_2;
+
+	DataStack* ds;
+	auto status = ObReferenceObjectByHandleWithTag(DataStackHandle, DATA_STACK_POP, g_DataStackType,
+		ExGetPreviousMode(), DataStackTag, (PVOID*)&ds, nullptr);
+	if (!NT_SUCCESS(status))
+		return status;
+
+	status = DsPopDataStack(ds, Buffer, size, BufferSize);
+	ObDereferenceObjectWithTag(ds, DataStackTag);
+	return status;
+}
+
+NTSTATUS NTAPI NtClearDataStack(HANDLE DataStackHandle) {
+	DataStack* ds;
+	auto status = ObReferenceObjectByHandleWithTag(DataStackHandle, DATA_STACK_CLEAR, g_DataStackType,
+		ExGetPreviousMode(), DataStackTag, (PVOID*)&ds, nullptr);
+	if (!NT_SUCCESS(status))
+		return status;
+
+	status = DsClearDataStack(ds);
+	ObDereferenceObjectWithTag(ds, DataStackTag);
+
+	return status;
 }
 
