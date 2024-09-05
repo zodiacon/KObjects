@@ -45,7 +45,7 @@ int main() {
 	printf("Handle created: 0x%p\n", hDataStack);
 
 	if (GetLastError() == ERROR_ALREADY_EXISTS) {
-		printf("Opened an existing object... will popup elements\n");
+		printf("Opened an existing object... will pop elements\n");
 		PopItems(hDataStack);
 	}
 	else {
