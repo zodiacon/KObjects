@@ -47,6 +47,8 @@ NTSTATUS DsPushDataStack(DataStack* ds, PVOID Item, ULONG ItemSize) {
 		InsertTailList(&ds->Head, &buffer->Link);
 		ds->Count++;
 		ds->Size += ItemSize;
+		if(ds->Count == 1)
+			KeSetEvent(&ds->Event, EVENT_INCREMENT, FALSE);
 	}
 	ExReleaseFastMutex(&ds->Lock);
 
@@ -115,6 +117,8 @@ NTSTATUS DsPopDataStack(DataStack* ds, PVOID buffer, ULONG inputSize, ULONG* ite
 				ds->Count--;
 				ds->Size -= item->Size;
 				ExFreePool(item);
+				if (ds->Count == 0)
+					KeClearEvent(&ds->Event);
 				return STATUS_SUCCESS;
 			}
 		}
@@ -143,3 +147,11 @@ NTSTATUS DsClearDataStack(DataStack* ds) {
 
 	return STATUS_SUCCESS;
 }
+
+void OnDataStackDelete(_In_ PVOID Object) {
+	KdPrint(("OnDataStackDelete 0x%p\n", Object));
+
+	auto ds = (DataStack*)Object;
+	DsClearDataStack(ds);
+}
+

@@ -3,6 +3,7 @@
 const ULONG DataStackTag = 'ktsD';
 
 struct DataStack {
+	KEVENT Event;
 	LIST_ENTRY Head;
 	FAST_MUTEX Lock;
 	ULONG Count;
@@ -19,6 +20,7 @@ struct DataBlock {
 };
 
 NTSTATUS DsCreateDataStackObjectType();
+void OnDataStackDelete(_In_ PVOID Object);
 
 NTSTATUS DsPushDataStack(DataStack* ds, PVOID Item, ULONG ItemSize);
 NTSTATUS DsPopDataStack(DataStack* ds, PVOID Item, ULONG inputSize, ULONG* ItemSize);

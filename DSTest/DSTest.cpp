@@ -16,8 +16,8 @@ bool PushString(HANDLE h, std::string const& text) {
 void PopItems(HANDLE h) {
 	BYTE buffer[256];
 
-	auto tick = GetTickCount64();
-	while (GetTickCount64() - tick < 10000) {
+	// wait 5 seconds at most for data to appear
+	while (WaitForSingleObject(h, 5000) == WAIT_OBJECT_0) {
 		DWORD size = sizeof(buffer);
 		if (!PopDataStack(h, buffer, &size) && GetLastError() != ERROR_NO_DATA) {
 			printf("Error in PopDataStack (%u)\n", GetLastError());
@@ -49,12 +49,11 @@ int main() {
 		PopItems(hDataStack);
 	}
 	else {
-		Sleep(5000);
+		Sleep(4000);
 
 		PushString(hDataStack, "Hello, data stack!");
 		PushString(hDataStack, "Pushing another string...");
 		for (int i = 1; i <= 10; i++) {
-			Sleep(100);
 			PushDataStack(hDataStack, &i, sizeof(i));
 		}
 	}

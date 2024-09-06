@@ -1,4 +1,4 @@
-#include <ntddk.h>
+#include <ntifs.h>
 #include "DataStack.h"
 #include "DataStackNativeAPI.h"
 
@@ -7,7 +7,7 @@ POBJECT_TYPE g_DataStackType;
 typedef struct _OBJECT_DUMP_CONTROL {
 	PVOID Stream;
 	ULONG Detail;
-} OB_DUMP_CONTROL, *POB_DUMP_CONTROL;
+} OB_DUMP_CONTROL, * POB_DUMP_CONTROL;
 
 typedef VOID(*OB_DUMP_METHOD)(
 	_In_ PVOID Object,
@@ -138,22 +138,44 @@ extern "C" {
 		_In_ ULONG NonPagedPoolCharge,
 		_Deref_out_ PVOID* Object);
 
-	NTSTATUS NTAPI ObInsertObject(
-		_In_ PVOID Object,
+	NTSTATUS NTAPI ObOpenObjectByName(
+		_In_ POBJECT_ATTRIBUTES ObjectAttributes,
+		_In_ POBJECT_TYPE ObjectType,
+		_In_ KPROCESSOR_MODE AccessMode,
 		_Inout_opt_ PACCESS_STATE AccessState,
 		_In_opt_ ACCESS_MASK DesiredAccess,
-		_In_ ULONG ObjectPointerBias,
-		_Out_opt_ PVOID* NewObject,
-		_Out_opt_ PHANDLE Handle);
+		_Inout_opt_ PVOID ParseContext,
+		_Out_ PHANDLE Handle);
 
-NTSTATUS ObOpenObjectByName(
-	_In_ POBJECT_ATTRIBUTES ObjectAttributes,
-	_In_ POBJECT_TYPE ObjectType,
-	_In_ KPROCESSOR_MODE AccessMode,
-	_Inout_opt_ PACCESS_STATE AccessState,
-	_In_opt_ ACCESS_MASK DesiredAccess,
-	_Inout_opt_ PVOID ParseContext,
-	_Out_ PHANDLE Handle);
+	NTSTATUS NTAPI ZwGetNextProcess(
+		_In_opt_ HANDLE ProcessHandle,
+		_In_ ACCESS_MASK DesiredAccess,
+		_In_ ULONG HandleAttributes,
+		_In_ ULONG Flags,
+		_Out_ PHANDLE NewProcessHandle);
+}
+
+PEPROCESS GetUserProcess() {
+	HANDLE hProcess = nullptr, hNewProcess;
+	for (int i = 0; i < 6; i++) {
+		auto status = ZwGetNextProcess(hProcess, GENERIC_READ, OBJ_KERNEL_HANDLE, 0, &hNewProcess);
+		if (hProcess)
+			NtClose(hProcess);
+
+		if (!NT_SUCCESS(status))
+			break;
+
+		hProcess = hNewProcess;
+	}
+	PEPROCESS process = nullptr;
+	if (hProcess) {
+		KdPrint(("Using handle 0x%p for process\n", hProcess));
+		ObReferenceObjectByHandle(hProcess, GENERIC_READ, *PsProcessType, KernelMode, (PVOID*)&process, nullptr);
+		ZwClose(hProcess);
+	}
+	KdPrint(("Process object from handle 0x%p (PID: 0x%X)\n", process, 
+		process ? HandleToULong(PsGetProcessId(process)) : 0));
+	return process;
 }
 
 NTSTATUS DsCreateDataStackObjectType() {
@@ -162,6 +184,8 @@ NTSTATUS DsCreateDataStackObjectType() {
 	init.DefaultNonPagedPoolCharge = sizeof(DataStack);
 	init.PoolType = NonPagedPoolNx;
 	init.ValidAccessMask = DATA_STACK_ALL_ACCESS;
+	init.DeleteProcedure = OnDataStackDelete;
+	init.SecurityRequired = TRUE;
 
 	GENERIC_MAPPING mapping{
 		STANDARD_RIGHTS_READ | DATA_STACK_QUERY,
@@ -172,12 +196,9 @@ NTSTATUS DsCreateDataStackObjectType() {
 	init.GenericMapping = mapping;
 
 	auto status = ObCreateObjectType(&typeName, &init, nullptr, &g_DataStackType);
+
 	if (status == STATUS_OBJECT_NAME_COLLISION) {
 		KdPrint(("DataStack Object type already exists\n"));
-		status = STATUS_SUCCESS;
-	}
-	else if (status == STATUS_SUCCESS) {
-		KdPrint(("Created DataStack Type Object (0x%p)\n", g_DataStackType));
 	}
 	return status;
 }
@@ -185,6 +206,7 @@ NTSTATUS DsCreateDataStackObjectType() {
 void DsInitializeDataStack(DataStack* DataStack, ULONG MaxItemSize, ULONG MaxItemCount, ULONG_PTR MaxSize) {
 	InitializeListHead(&DataStack->Head);
 	ExInitializeFastMutex(&DataStack->Lock);
+	KeInitializeEvent(&DataStack->Event, NotificationEvent, FALSE);
 	DataStack->Count = 0;
 	DataStack->MaxItemCount = MaxItemCount;
 	DataStack->Size = 0;
@@ -203,7 +225,7 @@ NTSTATUS NTAPI NtCreateDataStack(_Out_ PHANDLE DataStackHandle, _In_opt_ POBJECT
 		return STATUS_NOT_FOUND;
 
 	DataStack* ds;
-	auto status = ObCreateObject(mode, g_DataStackType, DataStackAttributes, mode, 
+	auto status = ObCreateObject(mode, g_DataStackType, DataStackAttributes, mode,
 		nullptr, sizeof(DataStack), 0, 0, (PVOID*)&ds);
 	if (!NT_SUCCESS(status)) {
 		KdPrint(("Error in ObCreateObject (0x%X)\n", status));
@@ -246,7 +268,7 @@ NTSTATUS NTAPI NtPushDataStack(HANDLE DataStackHandle, const PVOID Item, ULONG I
 		return STATUS_INVALID_PARAMETER_2;
 
 	DataStack* ds;
-	auto status = ObReferenceObjectByHandleWithTag(DataStackHandle, DATA_STACK_PUSH, g_DataStackType, 
+	auto status = ObReferenceObjectByHandleWithTag(DataStackHandle, DATA_STACK_PUSH, g_DataStackType,
 		ExGetPreviousMode(), DataStackTag, (PVOID*)&ds, nullptr);
 	if (!NT_SUCCESS(status))
 		return status;
