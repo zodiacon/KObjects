@@ -79,6 +79,17 @@ NTSTATUS OnDeviceControl(PDEVICE_OBJECT, PIRP Irp) {
 				break;
 			}
 
+			case IOCTL_DATASTACK_QUERY:
+			{
+				auto data = (DataStackQuery*)Irp->AssociatedIrp.SystemBuffer;
+				if (dic.InputBufferLength < sizeof(*data)) {
+					status = STATUS_BUFFER_TOO_SMALL;
+					break;
+				}
+				status = NtQueryInformationDataStack(data->DataStackHandle, data->InfoClass, data->Buffer, data->BufferSize, data->ReturnLength);
+				break;
+			}
+
 		}
 	}
 

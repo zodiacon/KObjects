@@ -5,9 +5,13 @@ EXPORTS
 	PushDataStack
 	PopDataStack
 	ClearDataStack
+	GetDataStackItemCount
+	GetDataStackSize
+	GetDataStackConfig
 
 	NtCreateDataStack
 	NtOpenDataStack
 	NtPushDataStack
 	NtPopDataStack
 	NtClearDataStack
+	NtQueryInformationDataStack

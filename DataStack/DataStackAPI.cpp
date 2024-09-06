@@ -125,3 +125,29 @@ BOOL WINAPI ClearDataStack(HANDLE hDataStack) {
 	return NT_SUCCESS(status);
 }
 
+_Use_decl_annotations_
+BOOL WINAPI GetDataStackSize(HANDLE hDataStack, ULONG_PTR* pSize) {
+	auto status = NtQueryInformationDataStack(hDataStack, DataStackTotalSize, pSize, sizeof(ULONG_PTR), nullptr);
+	if (!NT_SUCCESS(status))
+		SetLastError(RtlNtStatusToDosError(status));
+
+	return NT_SUCCESS(status);
+}
+
+_Use_decl_annotations_
+BOOL WINAPI GetDataStackItemCount(HANDLE hDataStack, ULONG* pCount) {
+	auto status = NtQueryInformationDataStack(hDataStack, DataStackItemCount, pCount, sizeof(ULONG), nullptr);
+	if (!NT_SUCCESS(status))
+		SetLastError(RtlNtStatusToDosError(status));
+
+	return NT_SUCCESS(status);
+}
+
+_Use_decl_annotations_
+BOOL WINAPI GetDataStackConfig(HANDLE hDataStack, DATA_STACK_CONFIG* pConfig) {
+	auto status = NtQueryInformationDataStack(hDataStack, DataStackConfiguration, pConfig, sizeof(DATA_STACK_CONFIG), nullptr);
+	if (!NT_SUCCESS(status))
+		SetLastError(RtlNtStatusToDosError(status));
+
+	return NT_SUCCESS(status);
+}

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "DataStackNativeAPI.h"
+
 struct DataStackCreate {
 	POBJECT_ATTRIBUTES ObjectAttributes;
 	ULONG MaxItemSize;
@@ -26,4 +28,12 @@ struct DataStackPop {
 	HANDLE DataStackHandle;
 	PVOID Buffer;
 	PULONG Size;
+};
+
+struct DataStackQuery {
+	HANDLE DataStackHandle;
+	DataStackInformationClass InfoClass;
+	PVOID Buffer;
+	ULONG BufferSize;
+	PULONG ReturnLength;
 };

@@ -1,5 +1,11 @@
 #pragma once
 
+typedef struct _DATA_STACK_CONFIG {
+	ULONG MaxItemSize;
+	ULONG MaxItemCount;
+	ULONG_PTR MaxSize;
+} DATA_STACK_CONFIG;
+
 extern "C" {
 	HANDLE WINAPI CreateDataStack(
 		_In_opt_ SECURITY_ATTRIBUTES* sa,
@@ -16,4 +22,8 @@ extern "C" {
 	BOOL WINAPI PushDataStack(_In_ HANDLE hDataStack, _In_ const PVOID buffer, _In_ DWORD size);
 	BOOL WINAPI PopDataStack(_In_ HANDLE hDataStack, _Out_ PVOID buffer, _Inout_ DWORD* size);
 	BOOL WINAPI ClearDataStack(_In_ HANDLE hDataStack);
+
+	BOOL WINAPI GetDataStackItemCount(_In_ HANDLE hDataStack, _Out_ ULONG* pCount);
+	BOOL WINAPI GetDataStackSize(_In_ HANDLE hDataStack, _Out_ ULONG_PTR* pSize);
+	BOOL WINAPI GetDataStackConfig(_In_ HANDLE hDataStack, _Out_ DATA_STACK_CONFIG* pConfig);
 }

@@ -55,3 +55,17 @@ NTSTATUS NTAPI NtClearDataStack(_In_ HANDLE DataStackHandle) {
 	return NtDeviceIoControlFile(g_hDevice, nullptr, nullptr, nullptr, &ioStatus,
 		IOCTL_DATASTACK_CLEAR, &DataStackHandle, sizeof(HANDLE), nullptr, 0);
 }
+
+NTSTATUS NTAPI NtQueryInformationDataStack(_In_ HANDLE DataStackHandle, _In_ DataStackInformationClass InformationClass,
+	_Out_ PVOID Buffer, _In_ ULONG BufferSize, _Out_opt_ PULONG ReturnLength) {
+	DataStackQuery data;
+	data.DataStackHandle = DataStackHandle;
+	data.Buffer = Buffer;
+	data.InfoClass = InformationClass;
+	data.BufferSize = BufferSize;
+	data.ReturnLength = ReturnLength;
+
+	IO_STATUS_BLOCK ioStatus;
+	return NtDeviceIoControlFile(g_hDevice, nullptr, nullptr, nullptr, &ioStatus,
+		IOCTL_DATASTACK_QUERY, &data, sizeof(data), nullptr, 0);
+}

@@ -16,6 +16,12 @@ bool PushString(HANDLE h, std::string const& text) {
 void PopItems(HANDLE h) {
 	BYTE buffer[256];
 
+	DATA_STACK_CONFIG config;
+	if (GetDataStackConfig(h, &config)) {
+		printf("Data Stack: max items: %u max item size: %u max size: %zu\n",
+			config.MaxItemCount, config.MaxItemSize, config.MaxSize);
+	}
+
 	// wait 5 seconds at most for data to appear
 	while (WaitForSingleObject(h, 5000) == WAIT_OBJECT_0) {
 		DWORD size = sizeof(buffer);
@@ -32,6 +38,11 @@ void PopItems(HANDLE h) {
 				printf("%d\n", *(int*)buffer);
 		}
 		Sleep(300);
+
+		DWORD count;
+		DWORD_PTR total;
+		if (GetDataStackItemCount(h, &count) && GetDataStackSize(h, &total))
+			printf("Data stack Item count: %u Size: %zu\n", count, total);
 	}
 }
 
