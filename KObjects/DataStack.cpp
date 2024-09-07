@@ -332,128 +332,132 @@ NTSTATUS NTAPI NtQueryInformationDataStack(_In_ HANDLE DataStackHandle, _In_ Dat
 	if (!NT_SUCCESS(status))
 		return status;
 
-	//
-	// if no buffer provided then ReturnLength must be non-NULL and buffer size must be zero
-	//
-	if (!ARGUMENT_PRESENT(Buffer) && (!ARGUMENT_PRESENT(ReturnLength) || BufferSize != 0))
-		return STATUS_INVALID_PARAMETER;
+	__try {
+		//
+		// if no buffer provided then ReturnLength must be 
+		// non-NULL and buffer size must be zero
+		//
+		if (!ARGUMENT_PRESENT(Buffer) && (!ARGUMENT_PRESENT(ReturnLength) || BufferSize != 0))
+			return STATUS_INVALID_PARAMETER;
 
-	//
-	// if buffer provided, then size must be non-zero
-	//
-	if (ARGUMENT_PRESENT(Buffer) && BufferSize == 0)
-		return STATUS_INVALID_PARAMETER;
+		//
+		// if buffer provided, then size must be non-zero
+		//
+		if (ARGUMENT_PRESENT(Buffer) && BufferSize == 0)
+			return STATUS_INVALID_PARAMETER;
 
 
-	ULONG len = 0;
-	switch (InformationClass) {
-		case DataStackItemCount: len = sizeof(ULONG); break;
-		case DataStackTotalSize: len = sizeof(ULONG_PTR); break;
-		case DataStackConfiguration: len = sizeof(DATA_STACK_CONFIGURATION); break;
-		default: return STATUS_INVALID_INFO_CLASS;
-	}
-
-	if (BufferSize < len) {
-		status = STATUS_BUFFER_TOO_SMALL;
-	}
-	else {
-		if (ExGetPreviousMode() != KernelMode) {
-			__try {
-				if (ARGUMENT_PRESENT(Buffer))
-					ProbeForWrite(Buffer, BufferSize, 1);
-				if (ARGUMENT_PRESENT(ReturnLength))
-					ProbeForWrite(ReturnLength, sizeof(ULONG), 1);
-			}
-			__except (EXCEPTION_EXECUTE_HANDLER) {
-				return GetExceptionCode();
-			}
-		}
-
+		ULONG len = 0;
 		switch (InformationClass) {
-			case DataStackItemCount:
-			{
-				ExAcquireFastMutex(&ds->Lock);
-				auto count = ds->Count;
-				ExReleaseFastMutex(&ds->Lock);
-
-				if (ExGetPreviousMode() != KernelMode) {
-					__try {
-						*(ULONG*)Buffer = count;
-					}
-					__except (EXCEPTION_EXECUTE_HANDLER) {
-						return GetExceptionCode();
-					}
-				}
-				else {
-					*(ULONG*)Buffer = count;
-				}
-				break;
-			}
-
-			case DataStackTotalSize:
-			{
-				ExAcquireFastMutex(&ds->Lock);
-				auto total = ds->Size;
-				ExReleaseFastMutex(&ds->Lock);
-
-				if (ExGetPreviousMode() != KernelMode) {
-					__try {
-						*(ULONG_PTR*)Buffer = total;
-					}
-					__except (EXCEPTION_EXECUTE_HANDLER) {
-						return GetExceptionCode();
-					}
-				}
-				else {
-					*(ULONG_PTR*)Buffer = total;
-				}
-				break;
-			}
-
-			case DataStackConfiguration:
-				DATA_STACK_CONFIGURATION config;
-				config.MaxItemCount = ds->MaxItemCount;
-				config.MaxItemSize = ds->MaxItemSize;
-				config.MaxSize = ds->MaxSize;
-
-				if (ExGetPreviousMode() != KernelMode) {
-					__try {
-						memcpy(Buffer, &config, len);
-					}
-					__except (EXCEPTION_EXECUTE_HANDLER) {
-						return GetExceptionCode();
-					}
-				}
-				else {
-					memcpy(Buffer, &config, len);
-				}
-				break;
-
-			default:
-				// unreachable
-				status = STATUS_INVALID_INFO_CLASS;
-				break;
+			case DataStackItemCount: len = sizeof(ULONG); break;
+			case DataStackTotalSize: len = sizeof(ULONG_PTR); break;
+			case DataStackConfiguration: len = sizeof(DATA_STACK_CONFIGURATION); break;
+			default: return STATUS_INVALID_INFO_CLASS;
 		}
-	}
 
-	//
-	// set returned bytes if requested
-	//
-	if (ARGUMENT_PRESENT(ReturnLength)) {
-		if (ExGetPreviousMode() != KernelMode) {
-			__try {
-				*ReturnLength = len;
-			}
-			__except (EXCEPTION_EXECUTE_HANDLER) {
-				return GetExceptionCode();
-			}
+		if (BufferSize < len) {
+			status = STATUS_BUFFER_TOO_SMALL;
 		}
 		else {
-			*ReturnLength = len;
+			if (ExGetPreviousMode() != KernelMode) {
+				__try {
+					if (ARGUMENT_PRESENT(Buffer))
+						ProbeForWrite(Buffer, BufferSize, 1);
+					if (ARGUMENT_PRESENT(ReturnLength))
+						ProbeForWrite(ReturnLength, sizeof(ULONG), 1);
+				}
+				__except (EXCEPTION_EXECUTE_HANDLER) {
+					return GetExceptionCode();
+				}
+			}
+
+			switch (InformationClass) {
+				case DataStackItemCount:
+				{
+					ExAcquireFastMutex(&ds->Lock);
+					auto count = ds->Count;
+					ExReleaseFastMutex(&ds->Lock);
+
+					if (ExGetPreviousMode() != KernelMode) {
+						__try {
+							*(ULONG*)Buffer = count;
+						}
+						__except (EXCEPTION_EXECUTE_HANDLER) {
+							return GetExceptionCode();
+						}
+					}
+					else {
+						*(ULONG*)Buffer = count;
+					}
+					break;
+				}
+
+				case DataStackTotalSize:
+				{
+					ExAcquireFastMutex(&ds->Lock);
+					auto total = ds->Size;
+					ExReleaseFastMutex(&ds->Lock);
+
+					if (ExGetPreviousMode() != KernelMode) {
+						__try {
+							*(ULONG_PTR*)Buffer = total;
+						}
+						__except (EXCEPTION_EXECUTE_HANDLER) {
+							return GetExceptionCode();
+						}
+					}
+					else {
+						*(ULONG_PTR*)Buffer = total;
+					}
+					break;
+				}
+
+				case DataStackConfiguration:
+					DATA_STACK_CONFIGURATION config;
+					config.MaxItemCount = ds->MaxItemCount;
+					config.MaxItemSize = ds->MaxItemSize;
+					config.MaxSize = ds->MaxSize;
+
+					if (ExGetPreviousMode() != KernelMode) {
+						__try {
+							memcpy(Buffer, &config, len);
+						}
+						__except (EXCEPTION_EXECUTE_HANDLER) {
+							return GetExceptionCode();
+						}
+					}
+					else {
+						memcpy(Buffer, &config, len);
+					}
+					break;
+
+				default:
+					// unreachable
+					status = STATUS_INVALID_INFO_CLASS;
+					break;
+			}
+		}
+
+		//
+		// set returned bytes if requested
+		//
+		if (ARGUMENT_PRESENT(ReturnLength)) {
+			if (ExGetPreviousMode() != KernelMode) {
+				__try {
+					*ReturnLength = len;
+				}
+				__except (EXCEPTION_EXECUTE_HANDLER) {
+					return GetExceptionCode();
+				}
+			}
+			else {
+				*ReturnLength = len;
+			}
 		}
 	}
-
-	ObDereferenceObjectWithTag(ds, DataStackTag);
+	__finally {
+		ObDereferenceObjectWithTag(ds, DataStackTag);
+	}
 	return status;
 }
 
